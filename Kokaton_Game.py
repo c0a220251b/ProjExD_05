@@ -173,6 +173,8 @@ class Kokaton(pygame.sprite.Sprite):
 
         # プレーヤーの向き add
         self.player_x = 1
+        self.damage_sound = pygame.mixer.Sound(os.path.join("data","damage.wav"))  # 敵に当たった効果音の設定
+        self.kidan_sound = pygame.mixer.Sound(os.path.join("data","kidan.wav"))  # 弾を打つ効果音の設定
 
     def update(self):
         """スプライトの更新"""
@@ -204,6 +206,7 @@ class Kokaton(pygame.sprite.Sprite):
         # ミサイルの発射 add
         if pressed_keys[K_s]:
             # リロード時間が5になるまで再発射できない
+            self.kidan_sound.play()  # Sをクリックしたら効果音を1回流す
             if self.reload_timer > self.RELOAD_TIME:
                 Shot_s(self.rect.center, self.player_x, self.blocks)  # 作成すると同時にallに追加される
                 self.reload_timer = 0
@@ -243,6 +246,7 @@ class Kokaton(pygame.sprite.Sprite):
                 self.image = self.down_image
                 down_flag = 1
                 self.fpvy = - self.JUMP_SPEED * 2  # 上向きに初速度を与える
+                self.damage_sound.play()  # 敵に当たったら効果音を1回流す
             else:
                 down_flag = 0
         # return down_flag
@@ -404,7 +408,6 @@ def load_image(filename, colorkey=None):
         image.set_colorkey(colorkey, RLEACCEL)
     return image
 
-       
 class Kokaton_Game:
     def __init__(self):
         pygame.init()
@@ -431,6 +434,9 @@ class Kokaton_Game:
             self.draw(screen)
             pygame.display.update()
             self.key_handler()
+            if not pygame.mixer.music.get_busy():  # BGMがなかったら
+                pygame.mixer.music.load("data/tanken.mp3")  
+                pygame.mixer.music.play(-1)  # BGMを流す
 
     def update(self):
         self.map.update()
