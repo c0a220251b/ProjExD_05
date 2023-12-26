@@ -84,6 +84,10 @@ class Shot_s(pygame.sprite.Sprite):
             collide = self.rect.colliderect(block.rect)
             if collide:  # 衝突するブロックあり
                 self.kill()
+        for trap in self.traps:
+            collide = self.rect.colliderect(trap.rect)
+            if collide:  # 衝突するブロックあり
+                self.kill()
                 
 
 class Shot_a(pygame.sprite.Sprite):
@@ -107,8 +111,8 @@ class Shot_a(pygame.sprite.Sprite):
             """衝突判定"""
             # ブロックとミサイルの衝突判定
             for block in self.blocks:
-                if self.rect.x >= block.rect.left and self.rect.y <= block.rect.y:
-                    print(1)
+                # if self.rect.x >= block.rect.left and self.rect.y <= block.rect.y:
+                #     print(1)
                 collide = self.rect.colliderect(block.rect)
                 if collide:  # 衝突するブロックあり
                     self.rect.move_ip(-self.speed_x, -self.speed_y)
@@ -122,6 +126,12 @@ class Shot_a(pygame.sprite.Sprite):
                         self.image = pygame.transform.rotozoom(self.image,  90, 1)
                         self.image.set_colorkey((255, 255, 255))
                     if self.mirorr == 3:
+                        self.kill()
+
+            # トラップとミサイルの衝突判定
+            for trap in self.traps:
+                collide = self.rect.colliderect(trap.rect)
+                if collide:  # 衝突するブロックあり
                         self.kill()
 
         elif self.player_x == 0: 
@@ -149,20 +159,17 @@ class Shot_a(pygame.sprite.Sprite):
                     if self.mirorr == 3:
                         self.kill()
 
-        for trap in self.traps:
-            collide = self.rect.colliderect(trap.rect)
-            if collide:  # 衝突するブロックあり
-                self.kill()
+            # トラップとミサイルの衝突判定
+            for trap in self.traps:
+                collide = self.rect.colliderect(trap.rect)
+                if collide:  # 衝突するブロックあり
+                    self.kill()
+
+        
                 
         
 class Kokaton(pygame.sprite.Sprite):
-    """エネミー"""
-    # MOVE_SPEED = 2.5    # 移動速度
-    # JUMP_SPEED = 6.0    # ジャンプの初速度
-    # GRAVITY = 0.2       # 重力加速度
-    # MAX_JUMP_COUNT = 2  # ジャンプ段数の回数
-
-    """こうかとん"""
+    """主人公"""
     MOVE_SPEED = 5.0    # 移動速度
     JUMP_SPEED = 5.0    # ジャンプの初速度
     GRAVITY = 0.2       # 重力加速度
@@ -178,7 +185,7 @@ class Kokaton(pygame.sprite.Sprite):
         self.traps = traps
         self.enemys = enemys   # 衝突判定用
         self.reload_timer = 0  # リロード時間
-        self.life = 100  # こうかとんのライフ数
+        self.life = 5  # こうかとんのライフ数
         self.coltm = 0
         self.invincible = False
         # self.invincible_timer = 0
@@ -227,7 +234,7 @@ class Kokaton(pygame.sprite.Sprite):
                 self.jump_count += 1
 
         # ミサイルの発射 add
-        if pressed_keys[K_s]:
+        if pressed_keys[K_s] and not pressed_keys[K_a]:
             # リロード時間が5になるまで再発射できない
             self.kidan_sound.play()  # Sをクリックしたら効果音を1回流す
             if self.reload_timer > self.RELOAD_TIME:
@@ -237,11 +244,11 @@ class Kokaton(pygame.sprite.Sprite):
                 self.reload_timer += 1 # リロード中
         
                 # ミサイルの発射 add
-        if pressed_keys[K_a]:
+        if pressed_keys[K_a]and not pressed_keys[K_s]:
             # リロード時間が5になるまで再発射できない
+            self.kidan_sound.play()  # Aをクリックしたら効果音を1回流す
             if self.reload_timer > self.RELOAD_TIME:
                 Shot_a(self.rect.center, self.player_x, self.blocks, self.traps)  # 作成すると同時にallに追加される
-                Shot_s(self.rect.center, self.player_x, self.blocks, self.traps)  # 作成すると同時にallに追加される
                 self.reload_timer = 0
             else:
                 self.reload_timer += 1 # リロード中
@@ -270,24 +277,17 @@ class Kokaton(pygame.sprite.Sprite):
             collide = self.rect.colliderect(enemy.rect)
             if self.coltm == 0:
                 if collide:  # 衝突するミサイルあり
+                    self.damage_sound.play()
                     self.image = self.down_image
-                    self.life -= 10  # ライフを一つ減少
+                    self.life -= 1  # ライフを一つ減少
                     self.coltm += 1
-                    self.fpvy = - self.JUMP_SPEED * 2  # 上向きに初速度を与える
+                    self.fpvy = - self.JUMP_SPEED * 1.2  # 上向きに初速度を与える
             elif 1 <= self.coltm < 180:
                 self.coltm += 1
             else:
                 self.down_flag = 0
                 self.coltm = 0
         # return down_flag
-            if collide:  # 衝突するエネミーあり
-                self.image = self.down_image
-                down_flag = 1
-                self.fpvy = - self.JUMP_SPEED * 2  # 上向きに初速度を与える
-                self.damage_sound.play()  # 敵に当たったら効果音を1回流す
-                self.fpvy = - self.JUMP_SPEED * 1.5  # 上向きに初速度を与える
-            else:
-                down_flag = 0
                 
     def collision_w(self):  
         width = self.rect.width
@@ -296,6 +296,7 @@ class Kokaton(pygame.sprite.Sprite):
             collide = self.rect.colliderect(trap.rect)
             if self.invincible == False:
                 if collide:  # 衝突するトラップあり
+                    self.life -= 1  # ライフを一つ減少
                     if self.fpvx > 0:    # 右に移動中に衝突
                         # めり込まないように調整して速度を0に
                         self.fpx = trap.rect.left - width
@@ -388,17 +389,6 @@ class Kokaton(pygame.sprite.Sprite):
                 # 衝突ブロックがないなら床の上にいない
                 self.on_floor = False
 
-
-class Kokaton_Life:
-    """こうかとんの残りライフを表示するためのクラス"""
-    def __init__(self, life):
-        self.font = pygame.font.SysFont("hgp創英角ﾎﾟｯﾌﾟ体", 30)
-        self.img = self.font.render(f"残りライフ：{life}", 0, (0, 0, 255))
-        
-    def update(self, life, screen):
-        self.img = self.font.render(f"残りライフ：{life}", 0, (255, 0, 0))
-        screen.blit(self.img, (400, 30))        
-                
         for trap in self.traps:
             if self.invincible == True:
                 collide = newrect.colliderect(trap.rect)
@@ -409,15 +399,30 @@ class Kokaton_Life:
                         self.fpvy = 0
                         # 下に移動中に衝突したなら床の上にいる
                         self.on_floor = True
-                        self.jump_count = 0
+                        self.jump_count = 0  # ジャンプカウントをリセット
                     elif self.fpvy < 0:  # 上に移動中に衝突
-                        self.fpy = trap.rect.bottom
-                        self.fpvy = 0 
-      
+                        self.fpy = block.rect.bottom
+                        self.fpvy = 0
+        
+        
     def count_to_three(self) :
+        global tmr
         if self.invincible == True:
-            if tmr % 180 == 0:
+            tmr += 1
+            if tmr % 100 == 0:
                 self.invincible = False
+                tmr = 0
+
+
+class Kokaton_Life:
+    """こうかとんの残りライフを表示するためのクラス"""
+    def __init__(self, life):
+        self.font = pygame.font.SysFont("hgp創英角ﾎﾟｯﾌﾟ体", 30)
+        self.img = self.font.render(f"残りライフ：{life}", 0, (0, 0, 255))
+        
+    def update(self, life, screen):
+        self.img = self.font.render(f"残りライフ：{life}", 0, (255, 0, 0))
+        screen.blit(self.img, (400, 15))        
                          
 
 class Map:
@@ -431,12 +436,11 @@ class Map:
         self.traps = pygame.sprite.Group()
         self.enemys = pygame.sprite.Group()  # エイリアングループ
         self.shots = pygame.sprite.Group()   # ミサイルグループ
-        Kokaton.containers = self.all
-        Block.containers = self.all, self.blocks
         Shot_s.containers = self.all, self.shots  # add
         Shot_a.containers = self.all, self.shots  # add
+        Kokaton.containers = self.all
+        Block.containers = self.all, self.blocks
         Trap.containers = self.all, self.traps
-        Shot_s.containers = self.all, self.shots  # add
         Enemy.containers = self.all, self.enemys # add
 
         # プレイヤーの作成
@@ -560,11 +564,11 @@ def game_end(surface, life, screen):
     pygame.draw.rect(bg,(0, 0, 0), (0, 0, 1600, 900))
     bg.set_alpha(128)
     screen.blit(bg, (0,0))
-    if life <= 0:
-        img = load_image("game_over.png")
-        img = pygame.transform.rotozoom(img, 0, 2.0)
-        str = font.render(f"Game Over", 0, (255, 0, 0))
-
+    img = load_image("game_over.png")
+    img = pygame.transform.rotozoom(img, 0, 2.0)
+    str = font.render(f"Game Over", 0, (255, 0, 0))
+    pygame.mixer.music.load("data/gameover.mp3")  
+    pygame.mixer.music.play(1)  # BGMを流す
     screen.blit(img, (250, 240))
     screen.blit(str, (150, 50))
     pygame.display.update()
@@ -576,20 +580,20 @@ class Kokaton_Game:
         global tmr
         pygame.init()
         screen = pygame.display.set_mode(SCR_RECT.size)
-        pygame.display.set_caption("マップスクロール")
+        pygame.display.set_caption("洞窟探検")
 
         # 画像のロード
+        Shot_s.image = load_image("fireball.png")    # add
+        Shot_a.image = pygame.transform.rotozoom(load_image("fireball.png"), 45, 0.8)  # add
         Kokaton.left_image = load_image("kokaton.png")
         Kokaton.right_image = pygame.transform.flip(Kokaton.left_image, 1, 0)  # 左向き
         Kokaton.down_image = pygame.transform.flip(Kokaton.right_image, 0, 1)  # 下向き
         Block.image = load_image("block.png", -1)
-        Shot_s.image = load_image("fireball.png")    # add
-        Shot_a.image = pygame.transform.rotozoom(load_image("fireball.png"), 45, 0.8)  # add
         Trap.image = load_image("trap.png", -1)
         Enemy.image = load_image("enemy.png", -1) # add               # 左向き
         
         # マップのロード
-        self.map = Map("data/test2.map")
+        self.map = Map("data/test3.map")
         self.klife = Kokaton_Life(self.map.kokaton.life)
 
         # メインループ
@@ -613,6 +617,8 @@ class Kokaton_Game:
                     if current_time - start_time >= 1000:  # 1秒経過したらループを抜ける
                         break
                 start_time = pygame.time.get_ticks()  # ループの開始時刻を取得
+                pygame.mixer.music.load("data/clear.mp3")  
+                pygame.mixer.music.play(1)  # BGMを流す
                 while True:
                     clock.tick(60)
                     clear_image = load_image("clear.png")  # ゲームクリア画面を用意
@@ -624,22 +630,20 @@ class Kokaton_Game:
                         break
                 pygame.quit()
                 sys.exit()
-            pygame.display.update()
-            self.key_handler()
+            # pygame.display.update()
             if not pygame.mixer.music.get_busy():  # BGMがなかったら
                 pygame.mixer.music.load("data/tanken.mp3")  
                 pygame.mixer.music.play(-1)  # BGMを流す
             #print(self.map.kokaton.life)
             # print(self.map.kokaton.coltm)
             if self.map.kokaton.life <= 0:
+                self.draw(screen)
+                self.update(screen)
                 game_end(self.map.surface, self.map.kokaton.life, screen)
                 return
 
     def update(self, screen):
         self.klife.update(self.map.kokaton.life, screen)
-            tmr += 1
-
-    def update(self, screen):
         self.remaining_enemies.update(screen, self.map)
         self.map.update()
 
